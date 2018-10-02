@@ -1,4 +1,4 @@
-= CAN lib for Smart Battery Solutions Li-Ion
+# CAN lib for Smart Battery Solutions Li-Ion
 
 The following files are copied from https://github.com/ebrady1/Due_2CAN/commit/a61e95522e44bd011f3b8f3e3524b246ab853cfc
 ```
@@ -9,7 +9,7 @@ due_can.h
 ```
 and due_can is probably in turn copied from an older version of https://github.com/collin80/due_can
 
-== Usage
+## Usage
 Clone to ``~/arduino/portable/sketchbook/libraries/`` or ``~/arduino/libraries`` and use
 ```
 #include <SbsCAN.h>
@@ -27,3 +27,4 @@ void setup() {
   }
 }
 ```
+for actual code to read the battery state, see the example.
