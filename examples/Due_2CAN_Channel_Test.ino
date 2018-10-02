@@ -2,7 +2,7 @@
 // Arduino Due on pins CANRX/TX connected to the CAN transceiver
 // CJMCU-1051 based on NXP TJA1051 CAN Transceiver
 // Wiring as documented in "2018-07-20 Report Leader 50V Battery CAN Readings": https://docs.google.com/document/d/1OmkW_UTGWCwyDriThNI7dI2qDYE3IVobrKOOHKtsnHs/edit#
-// DueCANLayer.h and its dependencies are from https://github.com/ebrady1/Due_2CAN/commit/a61e95522e44bd011f3b8f3e3524b246ab853cfc
+// SbsCAN.h and its dependencies are from https://github.com/fhackenberger/SBS_CAN @ 7de365e
 #include <SbsCAN.h>
 
 byte canPort = 0; // Port 0 is on CANRX/TX, Port 1 is on DAC0 (CANRX1) und Pin 53 (CANTX1) of the Arduino Due
