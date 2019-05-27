@@ -13,7 +13,7 @@ unsigned long battOnSinceMs = 0L;
 long id = 0;
 byte dta[8];
 unsigned int canStateOut = BMS_CTRL_STATE_INACTIVE;
-long idOut = 0;
+unsigned long idOut = 0;
 byte dtaOut[8] = {0};
 BMSState bmsState;
 
@@ -74,7 +74,7 @@ void loop() {
       bmsState.encodeSetStateMsg(canStateOut, idOut, dtaOut);
       if(canTx(canPort, idOut, false, dtaOut, 8) != CAN_OK)
         Serial.println("Sending ctrl message failed");
-      Serial.print("Sent ctrl message to "); Serial.print(dbgMsg); Serial.println("");
+      Serial.print("Sent ctrl message to battery for state "); Serial.println(canStateOut);
     }
   }
 }
