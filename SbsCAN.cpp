@@ -6,6 +6,7 @@
 // The hardware-serial branch of the CAN serial library https://github.com/fhackenberger/Serial_CAN_Arduino revision https://github.com/fhackenberger/Serial_CAN_Arduino/commit/2376ae2617c075af54695e48a02da84138ba8f14
 //
 // ATTENTION: During testing, after a re-flash, I have to completely powerdown the Arduino and the battery (two long presses) before powering it up again.
+#include <limits.h>
 #include "SbsCAN.h"
 
 /** According to Spec: Smart Battery Solutions "Specification CAN Bus (General) Project: 10bis14s BMS", 29.07.2015 */
@@ -70,6 +71,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     // TODO Validate status bits, BMS_Charge_Plug_Detection might help to test the code
     this->packVoltage = bytesToUInt16(data, 0) * 0.0078125; // Factor according to battery CAN spec page 6
     this->packCurrent = bytesToUInt16(data, 2) * 0.03125; // Factor according to battery CAN spec page 6
+    this->errField = data[4] << (26 - 8) + (data[5] << (26 - 2*8)) + (data[6] << (26 - 3*8)) + (data[7] & 0b00000011);
     this->errTempPowerstage1      = data[4] & MASK_BMS_ERR_Temp_Powerstage_1 ? true : false;
     this->errTempPowerstage2      = data[4] & MASK_BMS_ERR_Temp_Powerstage_2 ? true : false;
     this->errChargeCurrent        = data[4] & MASK_BMS_ERR_Charge_Current ? true : false;
@@ -97,6 +99,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     this->errCurrFlowPassiveState = data[7] & MASK_BMS_ERR_Curr_Flow_Passive_State ? true : false;
     this->errCanTimeout           = data[7] & MASK_BMS_ERR_CAN_Timeout ? true : false;
     this->errChargePlugDetection  = data[7] & MASK_BMS_Charge_Plug_Detection ? true : false;
+    this->msgCountInfo01++;
     return 1;
   }else if(id == BMS_INFO_IDS[1]) { // BMS_Info_02 message
     //printMsg(id, data);
@@ -105,6 +108,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     this->stateOfHealth = 0.5 * (unsigned int)data[3]; // Factor according to battery CAN spec page 9
     this->remainingCapacity_mAh = bytesToUInt16(data, 4);
     this->lastFullCapacity_mAh = bytesToUInt16(data, 6);
+    this->msgCountInfo02++;
     return 2;
   }else if(id == BMS_INFO_IDS[2]) { // BMS_INFO_03 message
     this->cellVolt01 = data[0];
@@ -115,6 +119,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     this->cellVolt06 = data[5];
     this->cellVolt07 = data[6];
     this->cellVolt08 = data[7];
+    this->msgCountInfo03++;
     return 3;
   }else if(id == BMS_INFO_IDS[3]) { // BMS_INFO_04 message
     this->cellVolt09 = data[0];
@@ -123,11 +128,13 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     this->cellVolt12 = data[3];
     this->cellVolt13 = data[4];
     this->cellVolt14 = data[5];
+    this->msgCountInfo04++;
     return 4;
   }else if(id == BMS_INFO_IDS[4]) { // BMS_INFO_05 message
     this->cellBalBits1 = data[0]; // Cells  1-6
     this->cellBalBits2 = data[1]; // Cells  7-11
     this->cellBalBits3 = data[2]; // Cells 12-14
+    this->msgCountInfo05++;
     return 5;
   }else if(id == BMS_INFO_IDS[5]) { // BMS_INFO_06 message
     this->tempPowerstage1 = bytesToInt16(data, 0);
@@ -135,6 +142,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
     this->tempMCU = bytesToInt16(data, 4);
     this->tempCell1 = data[6];
     this->tempCell2 = data[7];
+    this->msgCountInfo06++;
     return 6;
   }else {
     return -1;
@@ -142,11 +150,58 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
   return -1;
 }
 
-void BMSState::encodeSetStateMsg(unsigned int canState, unsigned long id, unsigned char* msgData) {
+void BMSState::encodeSetStateMsg(unsigned int canState, unsigned long& id, unsigned char* msgData) {
   msgData = { 0 };
   msgData[0] = canState;
   id = BMS_CTRL_ID;
   return;
+}
+
+String BMSState::getBmsStateStr() {
+  switch(this->bmsState) {
+    case BMS_STATE_INIT1:
+      return String("INIT1");
+    case BMS_STATE_INIT2:
+      return String("INIT2");
+    case BMS_STATE_INIT3:
+      return String("INIT3");
+    case BMS_STATE_INIT4:
+      return String("INIT4");
+    case BMS_STATE_IDLE :
+      return String("IDLE ");
+    case BMS_STATE_DISCHARGE:
+      return String("DISCHARGE");
+    case BMS_STATE_CHARGE:
+      return String("CHARGE");
+    case BMS_STATE_FAULT:
+      return String("FAULT");
+    case BMS_STATE_CRIT_ERR:
+      return String("CRIT_ERR");
+    case BMS_STATE_PREPARE_DEEPSLEEP:
+      return String("PREPARE_DEEPSLEEP");
+    case BMS_STATE_DEEPSLEEP:
+      return String("DEEPSLEEP");
+  }
+}
+
+bool BMSState::isErrActive() {
+  return this->errField != 0;
+}
+
+unsigned int BMSState::bmsCtrlStateFromStr(String bmsCtrlStateStr) {
+  if(String("INACTIVE") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_INACTIVE;
+  else if(String("DISCHARGE") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_DISCHARGE;
+  else if(String("CHARGE") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_CHARGE;
+  else if(String("ALARM_MODE") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_ALARM_MODE;
+  else if(String("12V_MODE") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_12V_MODE;
+  else if(String("DEEP_SLEEP") == bmsCtrlStateStr)
+    return BMS_CTRL_STATE_DEEP_SLEEP;
+  return UINT_MAX;
 }
 // END FILE
 

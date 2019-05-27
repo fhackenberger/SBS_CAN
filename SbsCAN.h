@@ -16,29 +16,35 @@ extern byte canTx(byte cPort, long lMsgID, bool bExtendedFormat, byte* cData, by
 extern byte canRx(byte cPort, long* lMsgID, bool* bExtendedFormat, byte* cData, byte* cDataLen);
 
 // The states that can be set on the BMS
-static unsigned int BMS_CTRL_STATE_INACTIVE  = 0;
-static unsigned int BMS_CTRL_STATE_DISCHARGE = 1;
-static unsigned int BMS_CTRL_STATE_CHARGE = 2;
-static unsigned int BMS_CTRL_STATE_ALARM_MODE = 3; // Infinite 12V active time, no reaction to button and charge-input
-static unsigned int BMS_CTRL_STATE_12V_MODE = 5;
-static unsigned int BMS_CTRL_STATE_DEEP_SLEEP = 6;
+static const unsigned int BMS_CTRL_STATE_INACTIVE  = 0;
+static const unsigned int BMS_CTRL_STATE_DISCHARGE = 1;
+static const unsigned int BMS_CTRL_STATE_CHARGE = 2;
+static const unsigned int BMS_CTRL_STATE_ALARM_MODE = 3; // Infinite 12V active time, no reaction to button and charge-input
+static const unsigned int BMS_CTRL_STATE_12V_MODE = 5;
+static const unsigned int BMS_CTRL_STATE_DEEP_SLEEP = 6;
 
 // The various states of the BMS as stored in the bmsState field
-static unsigned int BMS_STATE_INIT1 = 1;
-static unsigned int BMS_STATE_INIT2 = 2;
-static unsigned int BMS_STATE_INIT3 = 3;
-static unsigned int BMS_STATE_INIT4 = 4;
-static unsigned int BMS_STATE_IDLE  = 5;
-static unsigned int BMS_STATE_DISCHARGE = 6;
-static unsigned int BMS_STATE_CHARGE = 7;
-static unsigned int BMS_STATE_FAULT = 10;
-static unsigned int BMS_STATE_CRIT_ERR = 11;
-static unsigned int BMS_STATE_PREPARE_DEEPSLEEP = 99; // Boardnet supply will cut-off in 2 seconds
-static unsigned int BMS_STATE_DEEPSLEEP = 100;
+static const unsigned int BMS_STATE_INIT1 = 1;
+static const unsigned int BMS_STATE_INIT2 = 2;
+static const unsigned int BMS_STATE_INIT3 = 3;
+static const unsigned int BMS_STATE_INIT4 = 4;
+static const unsigned int BMS_STATE_IDLE  = 5;
+static const unsigned int BMS_STATE_DISCHARGE = 6;
+static const unsigned int BMS_STATE_CHARGE = 7;
+static const unsigned int BMS_STATE_FAULT = 10;
+static const unsigned int BMS_STATE_CRIT_ERR = 11;
+static const unsigned int BMS_STATE_PREPARE_DEEPSLEEP = 99; // Boardnet supply will cut-off in 2 seconds
+static const unsigned int BMS_STATE_DEEPSLEEP = 100;
 
 /** Holds the state of the BMS / battery in one class. This structure is filled by receiving multiple messages */
 class BMSState {
   public:
+  unsigned long msgCountInfo01 = 0;
+  unsigned long msgCountInfo02 = 0;
+  unsigned long msgCountInfo03 = 0;
+  unsigned long msgCountInfo04 = 0;
+  unsigned long msgCountInfo05 = 0;
+  unsigned long msgCountInfo06 = 0;
   float packVoltage;
   float packCurrent;
   unsigned int bmsState; // Shows different states of operation of the BMS state machine, see BMS_STATE_XXX
@@ -68,6 +74,7 @@ class BMSState {
   int tempMCU; // Actual microcontroller temperature measured
   int tempCell1; // Actual cell temperature measured
   int tempCell2; // Actual cell temperature measured
+  unsigned int errField; // Holds the error bits, useful for a quick check if errors are present
   bool errTempPowerstage1; // Temperature at powerstage sensor 1 above limits
   bool errTempPowerstage2; // Temperature at powerstage sensor 2 above limits
   bool errChargeCurrent; // Charge current above limits
@@ -96,12 +103,20 @@ class BMSState {
   bool errCanTimeout; // CAN Timeout detected
   bool errChargePlugDetection; // 1=plug detected
 
+  /** Gets a String version of the bmsState for display */
+  String getBmsStateStr();
+  /** Returns if there is at least one error state set */
+  bool isErrActive();
   /** Decodes a BMS CAN message and updates the data in this class
    * @returns the ID (according to spec 1-6) of the valid info message if one was detected, -1 if no message was detected */
   int decodeMsg(unsigned long id, unsigned char* data, unsigned int dataLen);
   /** Encodes a state change command into a CAN message
    * @param canState: One of the BMS_CTRL_STATE_ constants */
-  void encodeSetStateMsg(unsigned int canState, unsigned long id, unsigned char* msgData);
+  void encodeSetStateMsg(unsigned int canState, unsigned long& id, unsigned char* msgData);
+  /** Decodes a string into a BMS_CTRL_STATE_ constant
+   * @param bmsCtrlStateStr The string to convert (without the BMS_CTRL_STATE_ prefix)
+   * @returns UINT_MAX if no matching state was found */
+  static unsigned int bmsCtrlStateFromStr(String bmsCtrlStateStr);
 };
 #endif
 // END FILE
