@@ -50,7 +50,7 @@ unsigned int bytesToUInt16(unsigned char* bytes, int startIdx) {
 }
 unsigned int bytesToInt16(unsigned char* bytes, int startIdx) {
   int val = 0;
-  val = bytes[startIdx] + (bytes[startIdx+1] << 8);
+  val = bytes[startIdx] | (bytes[startIdx+1] << 8);
   return val;
 }
 // Used for debugging, put it into the decodeMsg method if required
@@ -70,7 +70,7 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
   if(id == BMS_INFO_IDS[0]) { // BMS_Info_01 message
     // TODO Validate status bits, BMS_Charge_Plug_Detection might help to test the code
     this->packVoltage = bytesToUInt16(data, 0) * 0.0078125; // Factor according to battery CAN spec page 6
-    this->packCurrent = bytesToUInt16(data, 2) * 0.03125; // Factor according to battery CAN spec page 6
+    this->packCurrent = bytesToInt16(data, 2) * 0.03125; // Factor according to battery CAN spec page 6
     this->errField = data[4] << (26 - 8) + (data[5] << (26 - 2*8)) + (data[6] << (26 - 3*8)) + (data[7] & 0b00000011);
     this->errTempPowerstage1      = data[4] & MASK_BMS_ERR_Temp_Powerstage_1 ? true : false;
     this->errTempPowerstage2      = data[4] & MASK_BMS_ERR_Temp_Powerstage_2 ? true : false;
@@ -151,8 +151,8 @@ int BMSState::decodeMsg(unsigned long id, unsigned char* data, unsigned int data
 }
 
 void BMSState::encodeSetStateMsg(unsigned int canState, unsigned long& id, unsigned char* msgData) {
-  msgData = { 0 };
-  msgData[0] = canState;
+//  msgData = { 0 };
+  msgData[0] = (unsigned char)canState;
   id = BMS_CTRL_ID;
   return;
 }

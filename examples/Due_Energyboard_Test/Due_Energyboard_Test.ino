@@ -6,7 +6,7 @@
 #include <SbsCAN.h>
 
 byte canPort = 0; // Port 0 is on CANRX/TX, Port 1 is on DAC0 (CANRX1) und Pin 53 (CANTX1) of the Arduino Due
-int outLioIonBtnPin = 24; // The Arduino pin which is connected to the Bat-enable pin of the battery. Pull to GND (LOW) to simulate pressing on the button
+int outLioIonBtnPin = 24; // The Arduino pin which is connected to the Bat-enable pin of the battery. Pull to GND (LOW) to simulate pressing on the button, set to INPUT to release the button
 unsigned long battEnPushedMs = 0L;
 unsigned long lastKeepAliveMs;
 unsigned long lastValidMsgMs = 0L;
@@ -37,6 +37,14 @@ void setup() {
 }
 
 void loop() {
+//  canStateOut = BMS_CTRL_STATE_DISCHARGE;
+//  bmsState.encodeSetStateMsg(canStateOut, idOut, dtaOut);
+//  if(canTx(canPort, idOut, false, dtaOut, 8) != CAN_OK)
+//    Serial.println("Sending ctrl message failed");
+//  Serial.print("Sent ctrl message to battery for state "); Serial.println(canStateOut);
+//  delay(50);
+//  return;
+  
   byte cDataLen;
   unsigned long now = millis();
   if((lastValidMsgMs == 0L || (now - lastValidMsgMs) > 10000) && // No CAN msg or dead for more than 10 seconds
@@ -56,7 +64,7 @@ void loop() {
     if(msgRcv > 0)
       lastValidMsgMs = now;
     if(msgRcv == 2) {
-      Serial.print("Info02: State "); Serial.print(bmsState.getBmsStateStr()); Serial.print(" SoC "); Serial.print(bmsState.stateOfCharge); Serial.print(" SoH "); Serial.print(bmsState.stateOfHealth); Serial.print(" remCapa "); Serial.print(bmsState.remainingCapacity_mAh); Serial.print("mAh lastFullCapa "); Serial.print(bmsState.lastFullCapacity_mAh); Serial.println("mAh");
+      Serial.print("Info02: State "); Serial.print(bmsState.getBmsStateStr()); Serial.print(" SoC: "); Serial.print(bmsState.stateOfCharge); Serial.print("% SoH: "); Serial.print(bmsState.stateOfHealth); Serial.print("% curr: "); Serial.print(bmsState.packCurrent); Serial.print("A remCapa: "); Serial.print(bmsState.remainingCapacity_mAh); Serial.print("mAh lastFullCapa "); Serial.print(bmsState.lastFullCapacity_mAh); Serial.println("mAh");
     }
   }
   if(battOnSinceMs == 0L && lastValidMsgMs != 0L)
