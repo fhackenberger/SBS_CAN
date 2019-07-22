@@ -72,7 +72,7 @@ void loop() {
   }
   if(battOnSinceMs == 0L && lastValidMsgMs != 0L)
     battOnSinceMs = now;
-  // Cycle the battery between high power on for 10 seconds and off for 2 seconds for 60 seconds
+  // Cycle the battery between high power on for 4 seconds and off for 2 seconds for 20 seconds
   if(bmsState.bmsState == BMS_STATE_DISCHARGE && highPowerOnSinceMs == 0L)
     highPowerOnSinceMs = now;
   else if(bmsState.bmsState != BMS_STATE_DISCHARGE)
@@ -82,7 +82,7 @@ void loop() {
     boolean sendCtrlMsg = false;
     Serial.print("checking for CAN data... Last valid msg "); Serial.print(millis() - lastValidMsgMs); Serial.print("ms ago. Err present: "); Serial.println(bmsState.isErrActive() ? "true" : "false");
     lastKeepAliveMs = millis();
-    if(battOnSinceMs != 0L && (now - battOnSinceMs) >= (60 * 1000)) { // If battery was on for more than 60 seconds
+    if(battOnSinceMs != 0L && (now - battOnSinceMs) >= (20 * 1000)) { // If battery was on for more than 60 seconds
       canStateOut = BMS_CTRL_STATE_DEEP_SLEEP;
       dbgMsg = "put battery to sleep";
       sendCtrlMsg = true;
@@ -90,7 +90,7 @@ void loop() {
       canStateOut = BMS_CTRL_STATE_DISCHARGE;
       dbgMsg = "enable High Voltage output";
       sendCtrlMsg = true;
-    }else if((now - highPowerOnSinceMs) > (10 * 1000)) { // If high power was on for more than 10 seconds
+    }else if((now - highPowerOnSinceMs) > (4 * 1000)) { // If high power was on for more than 10 seconds
       canStateOut = BMS_CTRL_STATE_INACTIVE;
       dbgMsg = "disable High Voltage output";
       sendCtrlMsg = true;
