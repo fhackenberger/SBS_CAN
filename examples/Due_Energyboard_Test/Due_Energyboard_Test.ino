@@ -32,9 +32,15 @@ void setup() {
   lastKeepAliveMs = millis();
   lastValidMsgMs = 0;
   pinMode(outLioIonBtnPin, INPUT); // Don't press the button (setting the output to HIGH does not work as expected after it was LOW)
+  digitalWrite(30, LOW);
+  pinMode(30, OUTPUT);
+  digitalWrite(30, LOW);
+  digitalWrite(28, LOW);
+  pinMode(28, OUTPUT);
+  digitalWrite(28, LOW);
   // XXX Enabling the following two lines breaks the example, we seem to have some kind of interference issues
-//  pinMode(22, OUTPUT);
-//  pinMode(29, OUTPUT);
+  pinMode(22, OUTPUT);
+  pinMode(29, OUTPUT);
   // XXX force sending the 48V enable msg for testing
   bmsState.bmsState = BMS_STATE_IDLE;
 }
